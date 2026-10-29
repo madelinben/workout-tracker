@@ -1,6 +1,13 @@
 import { Pause, Play, SkipForward, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { formatTime, position, type StepKind, startOf, totalSeconds, type Workout } from "../lib/workout";
+import {
+  formatTime,
+  position,
+  type StepKind,
+  startOf,
+  totalSeconds,
+  type Workout,
+} from "../lib/workout";
 
 const COLOUR = {
   warmup: "bg-amber-700",
@@ -31,6 +38,7 @@ export function Timer({ workout, onDone, onExit }: Props) {
   const finished = index >= steps.length;
 
   // Frame loop while running: an external clock, so an effect is the right tool.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: elapsed is only the resume point, re-running per tick would restart the loop
   useEffect(() => {
     if (!running || finished) return;
     origin.current = performance.now() - elapsed * 1000;
@@ -39,7 +47,6 @@ export function Timer({ workout, onDone, onExit }: Props) {
       frame = requestAnimationFrame(tick);
     });
     return () => cancelAnimationFrame(frame);
-    // elapsed is only the resume point: re-running per tick would restart the loop
   }, [running, finished]);
 
   // Keep the screen on while the timer runs.
@@ -59,19 +66,20 @@ export function Timer({ workout, onDone, onExit }: Props) {
 
   // Beep on each new step and the last three seconds; buzz phones that support it.
   const cue = `${index}:${Math.ceil(remaining)}`;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cue changes once per second or step, the rest is read from the same render
   useEffect(() => {
     if (!running || finished) return;
     const starting = !lastCue.current.startsWith(`${index}:`);
     lastCue.current = cue;
     if (!starting && Math.ceil(remaining) > 3) return;
-    const ctx = (audio.current ??= new AudioContext());
+    audio.current ??= new AudioContext();
+    const ctx = audio.current;
     const osc = ctx.createOscillator();
     osc.frequency.value = starting ? 880 : 520;
     osc.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + (starting ? 0.35 : 0.12));
     if (starting) navigator.vibrate?.(200);
-    // cue changes once per second or step; remaining is read from the same render
   }, [cue]);
 
   function skip() {
@@ -87,7 +95,11 @@ export function Timer({ workout, onDone, onExit }: Props) {
         <p className="text-lg">
           {workout.name} · {formatTime(total)}
         </p>
-        <button type="button" onClick={() => onDone(total)} className="min-h-12 rounded-xl bg-white px-6 font-bold text-emerald-900">
+        <button
+          type="button"
+          onClick={() => onDone(total)}
+          className="min-h-12 rounded-xl bg-white px-6 font-bold text-emerald-900"
+        >
           Save to log
         </button>
         <button type="button" onClick={onExit} className="min-h-11 text-sm font-semibold underline">
@@ -98,11 +110,15 @@ export function Timer({ workout, onDone, onExit }: Props) {
   }
 
   return (
-    <div className={`flex h-full flex-col p-4 text-white transition-colors ${COLOUR[step?.kind ?? "work"]}`}>
+    <div
+      className={`flex h-full flex-col p-4 text-white transition-colors ${COLOUR[step?.kind ?? "work"]}`}
+    >
       <p className="text-sm font-semibold opacity-90">{workout.name}</p>
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center" aria-live="polite">
-        <p className="text-2xl font-extrabold uppercase tracking-wide">{step?.name}</p>
-        <p className="font-black tabular-nums leading-none [font-size:min(30vw,9rem)]" aria-label={`${Math.ceil(remaining)} seconds left`}>
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
+        <p className="text-2xl font-extrabold uppercase tracking-wide" aria-live="polite">
+          {step?.name}
+        </p>
+        <p className="font-black tabular-nums leading-none [font-size:min(30vw,9rem)]">
           {formatTime(remaining)}
         </p>
         <p className="text-sm opacity-90">
@@ -114,14 +130,26 @@ export function Timer({ workout, onDone, onExit }: Props) {
         <div className="h-full bg-white" style={{ width: `${(elapsed / total) * 100}%` }} />
       </div>
       <div className="grid grid-cols-3 gap-2">
-        <button type="button" onClick={onExit} className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-black/25 font-bold">
+        <button
+          type="button"
+          onClick={onExit}
+          className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-black/25 font-bold"
+        >
           <Square size={18} aria-hidden="true" /> Stop
         </button>
-        <button type="button" onClick={() => setRunning(!running)} className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-white font-bold text-slate-900">
+        <button
+          type="button"
+          onClick={() => setRunning(!running)}
+          className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-white font-bold text-slate-900"
+        >
           {running ? <Pause size={20} aria-hidden="true" /> : <Play size={20} aria-hidden="true" />}
           {running ? "Pause" : "Resume"}
         </button>
-        <button type="button" onClick={skip} className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-black/25 font-bold">
+        <button
+          type="button"
+          onClick={skip}
+          className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-black/25 font-bold"
+        >
           <SkipForward size={18} aria-hidden="true" /> Skip
         </button>
       </div>

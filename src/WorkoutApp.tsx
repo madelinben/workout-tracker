@@ -48,7 +48,13 @@ export function WorkoutApp({ beforeExport }: { beforeExport?: BeforeExport }) {
         workout={active}
         onExit={() => setActive(null)}
         onDone={(seconds) => {
-          update({ ...data, log: [...data.log, { id: crypto.randomUUID(), name: active.name, date: today(), seconds }] });
+          update({
+            ...data,
+            log: [
+              ...data.log,
+              { id: crypto.randomUUID(), name: active.name, date: today(), seconds },
+            ],
+          });
           setActive(null);
           go("log");
         }}
@@ -64,12 +70,21 @@ export function WorkoutApp({ beforeExport }: { beforeExport?: BeforeExport }) {
           {tab === "log" && (
             <>
               <Log data={data} onChange={update} today={today()} />
-              <DataBackup filename="workout-tracker.json" data={data} parse={parseWorkout} onRestore={update} beforeExport={beforeExport} />
+              <DataBackup
+                filename="workout-tracker.json"
+                data={data}
+                parse={parseWorkout}
+                onRestore={update}
+                beforeExport={beforeExport}
+              />
             </>
           )}
         </div>
       </div>
-      <nav aria-label="Workout Tracker" className="grid grid-cols-2 gap-1 border-t border-slate-200 bg-white p-1.5">
+      <nav
+        aria-label="Workout Tracker"
+        className="grid grid-cols-2 gap-1 border-t border-slate-200 bg-white p-1.5"
+      >
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
